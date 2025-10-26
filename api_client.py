@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple Python script to test the Rust PostgreSQL API
+Python script to test the Rust PostgreSQL API with Customers and Loans data
 Saves each response to JSON and YAML files
 """
 
@@ -34,80 +34,150 @@ def save_response(name, data):
     with open(json_path, 'w') as f:
         json.dump(data_with_meta, f, indent=2)
     print(f"   💾 Saved to: {json_path}")
-    
-    # # Save as YAML
-    # yaml_path = os.path.join(OUTPUT_DIR, f"{filename}.yaml")
-    # with open(yaml_path, 'w') as f:
-    #     yaml.dump(data_with_meta, f, default_flow_style=False, sort_keys=False)
-    # print(f"   💾 Saved to: {yaml_path}")
 
 def print_response(name, response):
     """Pretty print and save the response"""
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print(f"{name}")
-    print(f"{'='*60}")
+    print(f"{'='*70}")
     data = response.json()
-    print(json.dumps(data, indent=2))
+    
+    # Show summary
+    print(f"Page: {data.get('page', 'N/A')} | Page Size: {data.get('page_size', 'N/A')}")
+    print(f"Records: {data.get('count', 0)} | Total: {data.get('total_count', 'N/A')}")
+    print(f"{'-'*70}")
+    
+    # Show first 3 records
+    if data.get('data'):
+        for i, record in enumerate(data['data'][:3]):
+            print(json.dumps(record, indent=2))
+            if i < min(2, len(data['data']) - 1):
+                print()
+        
+        if len(data['data']) > 3:
+            print(f"... and {len(data['data']) - 3} more records")
+    else:
+        print("No data found")
     
     # Save to files
     save_response(name, data)
 
-# # Example 1: Health check
-# print("\n1. Health Check")
-# response = requests.get(f"{BASE_URL}/health")
-# print_response("1_health_check", response)
+print("\n" + "="*70)
+print("🏦 Testing Rust PostgreSQL API - Banking Database")
+print("="*70)
 
-# # Example 2: Get all data
-# print("\n2. Get all sample_data")
-# response = requests.get(f"{BASE_URL}/sample_data")
-# print_response("2_get_all_sample_data", response)
+# 1. Health check
+print("\n1. Health Check")
+response = requests.get(f"{BASE_URL}/health")
+print_response("1_health_check", response)
 
-# # Example 3: Filter by date
-# print("\n3. Filter by date=2025-10-10")
-# response = requests.get(f"{BASE_URL}/sample_data/date=2025-10-10")
-# print_response("3_filter_by_date", response)
+# 2. Get first page of customers (10 per page)
+print("\n2. Get first page of customers (10 per page)")
+response = requests.get(f"{BASE_URL}/customers?page=1&page_size=10")
+print_response("2_customers_page_1", response)
 
-# # Example 4: Filter by ID >= 3
-# print("\n4. Filter by id>=3")
-# response = requests.get(f"{BASE_URL}/sample_data/id>=3")
-# print_response("4_filter_by_id_gte_3", response)
+# 3. Get customers from USA
+print("\n3. Get customers from USA")
+response = requests.get(f"{BASE_URL}/customers/country=USA?page=1&page_size=10")
+print_response("3_customers_usa", response)
 
-# Example 5: Filter by value > 150
-# print("\n5. Filter by value>150")
-# response = requests.get(f"{BASE_URL}/sample_data/value>150")
-# print_response("5_filter_by_value_gt_150", response)
+# 4. Get customers by full name with space (e.g., "John Smith")
+print("\n4. Get customer by full_name='John Smith'")
+response = requests.get(f"{BASE_URL}/customers/full_name=John%20Smith")
+print_response("4_customer_by_name", response)
 
-# Example 6: Multiple filters
-# print("\n6. Multiple filters (date=2025-10-10 AND value>100)")
-# response = requests.get(f"{BASE_URL}/sample_data/date=2025-10-10&value>100")
-# print_response("6_multiple_filters", response)
+# 5. Get customers born after 1990
+print("\n5. Get customers born after 1990-01-01")
+response = requests.get(f"{BASE_URL}/customers/birth_date>1990-01-01?sort=birth_date&order=desc&page=1&page_size=10")
+print_response("5_customers_born_after_1990", response)
 
-# Example 7: Get all users
-print("\n7. Get all users")
-response = requests.get(f"{BASE_URL}/users")
-print_response("7_get_all_users", response)
+# 6. Get all loans (paginated)
+print("\n6. Get first page of loans (10 per page)")
+response = requests.get(f"{BASE_URL}/loans?page=1&page_size=10&sort=debt_amount&order=desc")
+print_response("6_loans_page_1", response)
 
-# Example 8: Filter by name with spaces (URL encoded)
-print("\n8. Filter by name='Alice Johnson'")
-response = requests.get(f"{BASE_URL}/users/name=Alice%20Johnson")
-print_response("8_filter_by_name", response)
+# 6. Get loans with debt > 30000
+print("\n7. Get loans with debt_amount > 30000")
+response = requests.get(f"{BASE_URL}/loans/debt_amount>30000?sort=debt_amount&order=desc&page=1&page_size=10")
+print_response("7_loans_high_debt", response)
 
-# Example 9: Pagination
-print("\n9. Pagination (page=1, page_size=2)")
-response = requests.get(f"{BASE_URL}/sample_data?page=1&page_size=2")
-print_response("9_pagination", response)
+# 7. Get loans with overdue amount
+print("\n8. Get loans with overdue_debt_amount > 0")
+response = requests.get(f"{BASE_URL}/loans/overdue_debt_amount>0?page=1&page_size=20")
+print_response("8_loans_overdue", response)
 
-# Example 10: Sorting
-print("\n10. Sort by value descending")
-response = requests.get(f"{BASE_URL}/sample_data?sort=value&order=desc")
-print_response("10_sort_by_value_desc", response)
+# 8. Get active loans
+print("\n9. Get active loans")
+response = requests.get(f"{BASE_URL}/loans/loan_status=active?page=1&page_size=15")
+print_response("9_loans_active", response)
 
-# Example 11: Complex query
-print("\n11. Complex: id>1 AND value<300, sorted by date")
-response = requests.get(f"{BASE_URL}/sample_data/id>1&value<300?sort=date&order=asc")
-print_response("11_complex_query", response)
+# 9. Get loans for specific customer
+print("\n10. Get loans for customer_id = 10")
+response = requests.get(f"{BASE_URL}/loans/customer_id=10")
+print_response("10_loans_customer_10", response)
 
-print("\n" + "="*60)
+# 10. Get loans by date range and status
+print("\n11. Get active loans reported after 2024-01-01")
+response = requests.get(f"{BASE_URL}/loans/report_date>2024-01-01&loan_status=active?page=1&page_size=10")
+print_response("11_loans_recent_active", response)
+
+# 11. Get mortgage loans
+print("\n12. Get mortgage loans")
+response = requests.get(f"{BASE_URL}/loans/loan_type=Mortgage?page=1&page_size=10")
+print_response("12_loans_mortgage", response)
+
+# 12. Complex query: High debt overdue loans
+print("\n13. Complex: Debt > 20000 AND overdue > 1000")
+response = requests.get(f"{BASE_URL}/loans/debt_amount>20000&overdue_debt_amount>1000?sort=overdue_debt_amount&order=desc&page=1&page_size=10")
+print_response("13_loans_high_risk", response)
+
+# 13. Get customers from multiple countries (Germany)
+print("\n14. Get customers from Germany with pagination")
+response = requests.get(f"{BASE_URL}/customers/country=Germany?page=1&page_size=20&sort=birth_date&order=asc")
+print_response("14_customers_germany", response)
+
+# 14. Get customers with ID range
+print("\n15. Get customers with customer_id >= 100 and <= 200")
+response = requests.get(f"{BASE_URL}/customers/customer_id>=100&customer_id<=200?page=1&page_size=10")
+print_response("15_customers_id_range", response)
+
+# 15. Get loans by contract number pattern
+print("\n16. Get specific loan by contract number (shows debt over time)")
+response = requests.get(f"{BASE_URL}/loans/contract_number=LOAN-00000001?sort=report_date&order=asc")
+print_response("16_loan_debt_history", response)
+
+# 16. Show another contract's debt history
+print("\n17. Another contract's debt progression")
+response = requests.get(f"{BASE_URL}/loans/contract_number=LOAN-00000050?sort=report_date&order=asc")
+print_response("17_loan_debt_progression", response)
+
+print("\n" + "="*70)
 print("✅ All tests completed!")
 print(f"📁 All responses saved to: {OUTPUT_DIR}/")
-print("="*60)
+print("="*70)
+
+# Print summary
+print("\n📊 Summary of Available Queries:")
+print("-" * 70)
+print("Customers Table:")
+print("  - Filter by country: /customers/country=USA")
+print("  - Filter by full_name: /customers/full_name=John%20Smith")
+print("  - Filter by birth_date: /customers/birth_date>1990-01-01")
+print("  - Filter by status: /customers/status=active")
+print("  - Sort by any column: ?sort=birth_date&order=desc")
+print()
+print("Loans Table:")
+print("  - Filter by customer: /loans/customer_id=10")
+print("  - Filter by debt: /loans/debt_amount>30000")
+print("  - Filter by overdue: /loans/overdue_debt_amount>0")
+print("  - Filter by status: /loans/loan_status=active")
+print("  - Filter by type: /loans/loan_type=Mortgage")
+print("  - Filter by date: /loans/report_date>2024-01-01")
+print("  - Multiple filters: /loans/debt_amount>20000&loan_status=active")
+print()
+print("Pagination: ?page=1&page_size=10")
+print("Sorting: ?sort=column_name&order=asc/desc")
+print()
+print("💡 Tip: URL encode spaces in values (use %20 or +)")
+print("   Example: /customers/full_name=John%20Smith")
+print("="*70)
