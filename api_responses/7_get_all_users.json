@@ -1,0 +1,30 @@
+{
+  "timestamp": "2025-10-26T17:33:25.740688",
+  "query_name": "7_get_all_users",
+  "response": {
+    "data": [
+      {
+        "created_at": "2025-10-26 12:34:40.267563",
+        "email": "alice@example.com",
+        "id": 1,
+        "name": "Alice Johnson"
+      },
+      {
+        "created_at": "2025-10-26 12:34:40.267563",
+        "email": "bob@example.com",
+        "id": 2,
+        "name": "Bob Smith"
+      },
+      {
+        "created_at": "2025-10-26 12:34:40.267563",
+        "email": "charlie@example.com",
+        "id": 3,
+        "name": "Charlie Brown"
+      }
+    ],
+    "count": 3,
+    "page": 1,
+    "page_size": 100,
+    "total_count": 3
+  }
+}
